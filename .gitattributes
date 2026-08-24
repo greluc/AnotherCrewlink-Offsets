@@ -1,0 +1,3 @@
+# LF everywhere. The sync workflow compares the working copy against upstream blob
+# hashes, and a CRLF checkout would report every file as changed.
+* text=auto eol=lf

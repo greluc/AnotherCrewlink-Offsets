@@ -1,0 +1,68 @@
+name: Purge the CDN mirror
+
+# The client fetches from raw.githubusercontent.com and falls back to jsDelivr. jsDelivr
+# caches a branch reference for up to twelve hours, so without this a push leaves the
+# fallback serving the previous bundle for half a day.
+#
+# That window is not academic. The fallback is reached precisely when GitHub is having a
+# bad day — which, after an Among Us update, is when everyone is refetching at once. A
+# player who falls through to a stale mirror then gets offsets for the *previous* game
+# build. They parse cleanly, nothing reports an error, and the app quietly reads the wrong
+# fields. Verified on 2026-08-24: minutes after a push, raw served the new lookup.json
+# while jsDelivr was still serving one without the current game build in it.
+#
+# A purge is one GET per changed path and takes about a second.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lookup.json'
+      - 'offsets/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out this mirror
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Two commits, so the push can be diffed against what came before it.
+          fetch-depth: 2
+
+      - name: Purge every path this push changed
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Asked for by hand: the lookup is the one file that always matters, because
+            # it is what every client reads first.
+            paths="lookup.json"
+          else
+            paths="$(git diff --name-only HEAD^ HEAD -- lookup.json 'offsets/**')"
+          fi
+
+          if [ -z "$paths" ]; then
+            echo "nothing to purge"
+            exit 0
+          fi
+
+          failed=0
+          for path in $paths; do
+            url="https://purge.jsdelivr.net/gh/${GITHUB_REPOSITORY}@main/${path}"
+            status="$(curl -sS -o /tmp/purge.json -w '%{http_code}' --max-time 30 "$url" || echo 000)"
+            if [ "$status" = "200" ]; then
+              echo "purged $path"
+            else
+              # Not fatal. A failed purge means the fallback serves a stale file for up to
+              # twelve hours, which is worth a red run to notice but not worth blocking a
+              # release the primary host is already serving correctly.
+              echo "::warning::purge failed for $path (HTTP $status)"
+              cat /tmp/purge.json || true
+              failed=1
+            fi
+          done
+          exit "$failed"
