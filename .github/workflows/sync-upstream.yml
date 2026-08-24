@@ -1,0 +1,73 @@
+name: Sync from upstream
+
+# Opens a pull request when upstream has offsets files this mirror does not.
+#
+# It never pushes to main. Whatever is on main here is what every AnotherCrewLink client
+# reads, and the bundle carries no signature — so the review on this pull request is the
+# control that replaces the key. Branch protection on main is part of the same deliverable
+# and is not optional: without it this workflow is a suggestion.
+
+on:
+  schedule:
+    # Four times a day. An Among Us update is a burst rather than a trickle — upstream
+    # turned four cycles in one evening on 2026-06-06 — and a run that finds nothing costs
+    # one API call and finishes in seconds.
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out this mirror
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.x
+
+      - name: Look at upstream
+        id: sync
+        env:
+          # Only to raise the anonymous API rate limit. The script reads a public
+          # repository and writes nothing outside this checkout.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node .github/scripts/sync-upstream.mjs
+          if [ -s sync-report.md ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open a pull request
+        if: steps.sync.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: sync/upstream
+          # One branch, reused. A stack of stale sync branches is how a review queue turns
+          # into something nobody looks at.
+          delete-branch: true
+          title: 'Sync offsets from upstream'
+          body-path: sync-report.md
+          commit-message: |
+            Sync offsets from upstream
+
+            Opened by .github/workflows/sync-upstream.yml. The upstream commit this was
+            taken from is recorded in .upstream-sync.json, and the diff is in the pull
+            request body. Nothing that already exists here was overwritten.
+          add-paths: |
+            offsets/**
+            lookup.json
+            .upstream-sync.json
