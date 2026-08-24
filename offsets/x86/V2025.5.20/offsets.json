@@ -38,7 +38,7 @@
         "base": [29720404, 92, 0],
         "networkAddress": 20,
         "networkPort": 24,
-        "gameMode": -1,
+        "gameMode": 40,
         "gameId": 44,
         "hostId": 48,
         "clientId": 52,

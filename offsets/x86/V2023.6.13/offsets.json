@@ -121,7 +121,7 @@
     ],
     "networkAddress": 60,
     "networkPort": 64,
-    "gameMode": -1,
+    "gameMode": 80,
     "gameId": 84,
     "hostId": 88,
     "clientId": 92,
