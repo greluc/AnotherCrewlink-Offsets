@@ -104,9 +104,9 @@
   "serverManager_currentServer": [
     -1,
     184,
-    8,
     16,
-    8
+    40,
+    16
   ],
   "connectFunc": 4095,
   "showModStampFunc": 4095,
