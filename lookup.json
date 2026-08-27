@@ -1,5 +1,5 @@
 {
-  "bundle_version": 2,
+  "bundle_version": 4,
   "min_client_version": "1.0.0",
   "upstream_commit": "efbb54294014f9a2385f214c6efd70b03e57d7e8",
   "patterns": {
@@ -167,12 +167,12 @@
     "50663350": {
       "version": "V2026.8.18",
       "file": "V2026.8.18/offsets.json",
-      "offsetsVersion": 5
+      "offsetsVersion": 7
     },
     "default": {
       "version": "V2026.8.18",
       "file": "V2026.8.18/offsets.json",
-      "offsetsVersion": 5
+      "offsetsVersion": 7
     }
   }
 }
