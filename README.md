@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="AnotherCrewLink Offsets" width="96">
+</p>
+
 # AnotherCrewLink Offsets
 
 Memory offsets for [AnotherCrewLink](https://github.com/greluc/AnotherCrewLink). Every
